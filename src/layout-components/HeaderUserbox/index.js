@@ -1,4 +1,5 @@
 import React, { Fragment } from 'react';
+import Web3Modal from 'web3modal';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
@@ -17,8 +18,18 @@ import avatar5 from '../../assets/images/avatars/avatar5.jpg';
 export default function HeaderUserbox() {
   const [anchorEl, setAnchorEl] = React.useState(null);
 
-  const handleClick = event => {
-    setAnchorEl(event.currentTarget);
+  const handleClick = async event => {
+    //  setAnchorEl(event.currentTarget);
+    const providerOptions = {
+      /* See Provider Options Section */
+    };
+    const web3Modal = new Web3Modal({
+      network: 'mainnet', // optional
+      cacheProvider: true, // optional
+      providerOptions // required
+    });
+
+    const provider = await web3Modal.connect();
   };
 
   const handleClose = () => {
@@ -31,16 +42,14 @@ export default function HeaderUserbox() {
         color="inherit"
         onClick={handleClick}
         className="text-capitalize px-3 text-left btn-inverse d-flex align-items-center">
-        <Box>
-          <Avatar sizes="44" alt="Emma Taylor" src={avatar5} />
-        </Box>
-        <div className="d-none d-xl-block pl-3">
+        <Box>Connected to your wallet</Box>
+        {/* <div className="d-none d-xl-block pl-3">
           <div className="font-weight-bold pt-2 line-height-1">Ryan Kent</div>
           <span className="text-white-50">Senior React Developer</span>
         </div>
         <span className="pl-1 pl-xl-3">
           <FontAwesomeIcon icon={['fas', 'angle-down']} className="opacity-5" />
-        </span>
+        </span> */}
       </Button>
 
       <Menu
