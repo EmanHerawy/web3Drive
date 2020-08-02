@@ -2,7 +2,7 @@
 
 export const ADD_NEW_ROW = 'ADD_NEW_ROW';
 export const INIT_IPFS = 'INIT_IPFS';
-export const GET_TABLE_DATA = 'GET_TABLE_DATA';
+export const REMOVE_ROW = 'REMOVE_ROW';
 
 export const addNewRow = row => ({
   type: ADD_NEW_ROW,
@@ -12,8 +12,9 @@ export const initIPFS = node => ({
   type: INIT_IPFS,
   node
 });
-export const getRows = () => ({
-  type: GET_TABLE_DATA
+export const removeRow = cid => ({
+  type: REMOVE_ROW,
+  cid
 });
 const tableRow = {
   cid: 'sjhfksjdhf',
@@ -44,8 +45,11 @@ export default function reducer(
         ...state,
         node: action.node
       };
-    case GET_TABLE_DATA:
-      return state.tableData;
+    case REMOVE_ROW:
+      return {
+        ...state,
+        tableData: state.tableData.filter(item => item.cid !== action.cid)
+      };
 
     default:
       break;

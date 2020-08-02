@@ -25,15 +25,34 @@ export const asyncLocalStorage = {
   }
 };
 export function downloadObjectAsJson(exportObj, exportName) {
-  var dataStr =
+  let dataStr =
     'data:text/json;charset=utf-8,' +
     encodeURIComponent(JSON.stringify(exportObj));
-  var downloadAnchorNode = document.createElement('a');
+  let downloadAnchorNode = document.createElement('a');
   downloadAnchorNode.setAttribute('href', dataStr);
   downloadAnchorNode.setAttribute('download', exportName + '.json');
   document.body.appendChild(downloadAnchorNode); // required for firefox
   downloadAnchorNode.click();
   downloadAnchorNode.remove();
+}
+
+
+export function downloadFile(fileName, data, cid) {
+  // console.log({ fileName });
+  // fileName = URLEncoder.encode(fileName, "UTF-8");
+  // console.log({ fileName });
+ 
+  const file = new window.Blob([data], {
+    type: 'application/octet-binary;charset=UTF-8'
+  })
+  const url = window.URL.createObjectURL(file)
+  let a = document.createElement("a");
+  document.body.appendChild(a);
+  a.style = "display: none";
+  a.href = url;
+  a.download = fileName;
+  a.click();
+  window.URL.revokeObjectURL(url);
 }
 
 export async function exportFile() {
@@ -117,7 +136,7 @@ export function getTableData() {
           name: data.name,
           cid: data.cid,
           size: data.size,
-          Key:""
+          Key: ""
         });
       },
       err => {
@@ -460,10 +479,10 @@ export async function generateKey(pass) {
 export function hexStringToUint8Array(hexString) {
   if (hexString.length % 2 != 0)
     throw "Invalid hexString";
-  var arrayBuffer = new Uint8Array(hexString.length / 2);
+  let arrayBuffer = new Uint8Array(hexString.length / 2);
 
-  for (var i = 0; i < hexString.length; i += 2) {
-    var byteValue = parseInt(hexString.substr(i, 2), 16);
+  for (let i = 0; i < hexString.length; i += 2) {
+    let byteValue = parseInt(hexString.substr(i, 2), 16);
     if (byteValue == NaN)
       throw "Invalid hexString";
     arrayBuffer[i / 2] = byteValue;
@@ -476,10 +495,10 @@ export function bytesToHexString(bytes) {
     return null;
 
   bytes = new Uint8Array(bytes);
-  var hexBytes = [];
+  let hexBytes = [];
 
-  for (var i = 0; i < bytes.length; ++i) {
-    var byteString = bytes[i].toString(16);
+  for (let i = 0; i < bytes.length; ++i) {
+    let byteString = bytes[i].toString(16);
     if (byteString.length < 2)
       byteString = "0" + byteString;
     hexBytes.push(byteString);
@@ -487,6 +506,8 @@ export function bytesToHexString(bytes) {
 
   return hexBytes.join("");
 }
+
+
 export function onSuccess(msg) {
   // $logs.classList.add('success')
   // $logs.innerHTML = msg
@@ -531,171 +552,85 @@ export function onError(err) {
     timer: 1500
   })
 }
+export function concatArrayBuffers(bufs) {
+  let offset = 0;
+  let bytes = 0;
+  let bufs2 = bufs.map(function (buf, total) {
+    bytes += buf.byteLength;
+    return buf;
+  });
+  let buffer = new ArrayBuffer(bytes);
+  let store = new Uint8Array(buffer);
+  bufs2.forEach(function (buf) {
+    store.set(new Uint8Array(buf.buffer || buf, buf.byteOffset), offset);
+    offset += buf.byteLength;
+  });
+  return buffer
 
-/***** 
-
-export function createWorker(workerFunc) {
-  // "Server response", used in all examples
-  let response =
-             "self.onmessage = " + workerFunc;
-
-  let blob;
-  try {
-    blob = new Blob([response], { type: 'application/javascript' });
-  } catch (e) { // Backwards-compatibility
-    window.BlobBuilder = window.BlobBuilder || window.WebKitBlobBuilder || window.MozBlobBuilder;
-    blob = new BlobBuilder();
-    blob.append(response);
-    blob = blob.getBlob();
-  }
-  window.URL = window.URL || window.webkitURL;
-
-
-  let worker = new Worker(URL.createObjectURL(blob));
-  return worker;
-}
-function encryptionWebWorkerOnMessage(e) {
-
-
-  const sleep = (milliseconds) => {
-    // console.log('*************Sleep********************');
-
-    return new Promise(resolve => setTimeout(resolve, milliseconds))
-  }
-
-  async function readFileByChunk(index, file, key) {
-
-
-
-    let chunksize = 1000000;
-    let i = 0,
-
-      chunks = Math.ceil(file.size / chunksize),
-      chunkTasks = [],
-      encryptedChunk = [],
-      startTime = (new Date()).getTime();
-    // console.log(startTime, 'startTime');
-    // console.log(file.size, 'file size');
-
-    for (let j = 0; j < chunks; j++) {
-      // console.log('loop');
-      // sleep each two chunks for one sec
-
-
-
-
-      // console.log(reader, 'reader');
-      // console.log(f, j, 'f+ j');
-      let start = j * chunksize;
-      let end = (j + 1) * chunksize < file.size ? (j + 1) * chunksize : file.size
-      let blob = file.slice(start, end);
-      // console.log(blob, 'blob');
-
-
-      let reader = new FileReader();
-
-      reader.onload = async function (e) {
-        let chunk = e.target.result;
-        console.log(key, ' key');
-        let encrypted = { index: j, cipher: await encrypt(chunk, key) };
-
-        console.log({ encrypted, index }, 'encrypted');
-
-        encryptedChunk = encryptedChunk.concat(encrypted.index);
-        postMessage({ index, encrypted, isFinised: chunks == encryptedChunk.length });
-
-
-        if (chunks == encryptedChunk.length) {
-
-
-          self.close();
-
-
-        }
-        if (encryptedChunk.length % 3 == 0) {
-          await sleep(3000);
-
-        }
-
-      };
-      reader.readAsArrayBuffer(blob);
-
-    }
-
-  }
-
-
-  async function encrypt(textBuffer, keyObject) {
-    // console.log(keyObject,'keyObject');
-
-    const encryptedText = await crypto.subtle.encrypt({ name: 'AES-CBC', iv: keyObject.iv }, keyObject.key, textBuffer);
-    return new Uint8Array(encryptedText, 0);
-  }
-
-
-  console.log(e.data, 'e.data start');
-  readFileByChunk(e.data.index, e.data.file, e.data.key);
 }
 
-function decryptionWebWorkerOnMessage(e) {
-  const sleep = (milliseconds) => {
-    return new Promise(resolve => setTimeout(resolve, milliseconds))
+export function preChunkingSetup(size) {
+  const logicalProcessors = window.navigator.hardwareConcurrency
+  // proposed worker shoud be up to 3 or 4
+  var chunksize = 1000016;
+  let chunks = Math.ceil(size / chunksize);
+  // proposed worker shoud be up to 3 or 4
+  // console.log(chunks, 'chunks');
+  let maxWorkers = 1;
+  if (chunks < 5) {
+    maxWorkers = 1;
+  } else if (chunks < 10) {
+    maxWorkers = 2;
+  } else {
+    maxWorkers = Math.ceil(logicalProcessors / 2);
   }
-  async function readFileByChunk(index, file, key) {
-    // console.log(index, file, 'index,content readFileByChunk');
-    console.log(key, 'key');
-
-    let chunksize = 1000016;
-    let f = file//.content,
-    chunks = Math.ceil(f.byteLength / chunksize),
-      decryptedChunk = [];
 
 
-    for (let j = 0; j < chunks; j++) {
-      let start = j * chunksize;
-      let end = (j + 1) * chunksize < f.length ? (j + 1) * chunksize : f.length
-      let blob = f.slice(start, end);
-      // console.log({ blob: blob.buffer });
 
-      let decrypted = { index: j, palintxt: await decrypt(blob.buffer, key) };
-      // console.log(decrypted, 'decrypted');
+  // how many elements each worker should sort
+  const segmentsPerWorker = Math.round(chunks / maxWorkers);
+  const chunkSizePerWorker = maxWorkers == 1 ? size : chunksize * segmentsPerWorker;
+  // console.log(chunkSizePerWorker, segmentsPerWorker, 'chunkSizePerWorker');
 
-      decryptedChunk = decryptedChunk.concat(decrypted.index);
-      postMessage({ index, decrypted, isFinised: chunks == decryptedChunk.length });
-
-
-      if (chunks == decryptedChunk.length) {
-        // console.log(chunks == decryptedChunk.length, 'chunks == decryptedChunk.length');
+  console.log(`starting decryption ${maxWorkers} workers`);
+  return {
+    maxWorkers,
+    chunkSizePerWorker
+  }
+}
 
 
-        self.close();
+
+    
+
+export async function removePin(hash,node) {
+  if (hash) {
+    console.log("Remove Pinn...")
+    const pinset = await node.pin.rm(hash)
+    console.log(pinset)
+    onSuccess(`Pin removed.`)
+  }
+  else {
+    onError("Can't remove pin for empty CID")
+  }
+}
+ 
 
 
+export async function getPINS(event,node) {
+  for await (const { cid, type } of node.pin.ls()) {
+    console.log({ cid, type })
+  }
+}
+export function getPIN(hash,node) {
+  return new Promise(async (resolve, reject) => {
+    for await (const { cid, type } of node.pin.ls()) {
+      // console.log({ cid, type })
+      if (cid == hash) {
+        resolve(true)
       }
-      if (decryptedChunk.length % 3 == 0) {
-        await sleep(3000);
-
-      }
-
     }
+    resolve(false)
 
-  }
-
-
-
-
-
-  async function decrypt(encryptedText, keyObject) {
-    // const textDecoder = new TextDecoder("utf-8");
-    const decryptedText = await crypto.subtle.decrypt({ name: 'AES-CBC', iv: keyObject.iv }, keyObject.key, encryptedText);
-    return new Uint8Array(decryptedText, 0);//textDecoder.decode(decryptedText);
-  }
-
-  console.log(e.data, 'e.data');
-
-  readFileByChunk(e.data.index, e.data.file, e.data.key);
-
-
-
+  });
 }
-*/

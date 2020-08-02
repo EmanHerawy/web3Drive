@@ -12,4 +12,5 @@ export { default as ExampleWrapperSeamless } from './ExampleWrapperSeamless';
 export { default as ExampleWrapperContainer } from './ExampleWrapperContainer';
 export { default as FileTable } from './table';
 export { default as FileUploader } from './fileUploader';
+export { default as FileDownloader } from './fileDownloader';
  

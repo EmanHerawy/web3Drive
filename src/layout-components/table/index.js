@@ -1,4 +1,5 @@
 import React, { Fragment } from 'react';
+import PerfectScrollbar from 'react-perfect-scrollbar';
 
  import { List ,LoadTableData} from '../../page-components/table/full-table/data-table';
 
@@ -6,45 +7,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 import { Card, Button } from '@material-ui/core';
  
-// import { connect } from 'react-redux';
- 
-//  const mapStateToProps = state => {
-//   console.log(state.data);
 
-//   return { tableData: state.data.tableData };
-// };
-
-// const ConnectedList = ({ tableData }) => (
-//   <tbody>
-//     {tableData.map(el => (
-//       <tr key={el.key}>
-//         <td>
-//           <span className="text-black-50 d-block">{el.name}</span>
-//         </td>
-//         <td className="text-center">
-//           <span className="font-weight-bold text-danger">{el.cid}</span>
-//         </td>
-//         <td className="text-center">
-//           <span className="text-danger font-weight-bold">{el.size}</span>
-//         </td>
-//         <td className="text-center">
-//           <span className="badge badge-danger">check pin</span>
-//         </td>
-//         <td className="text-right">
-//           <div className="d-flex align-items-center justify-content-end">
-//             <div className="font-weight-bold font-size-lg pr-2">22222</div>
-//             <FontAwesomeIcon
-//               icon={['fas', 'arrow-down']}
-//               className="font-size-sm opacity-5"
-//             />
-//           </div>
-//         </td>
-//       </tr>
-//     ))}
-//   </tbody>
-// );
-
-// const List = connect(mapStateToProps)(ConnectedList);
 export default function FileTable() {
   // populate data
 
@@ -60,6 +23,8 @@ export default function FileTable() {
           </div>
           <LoadTableData/>
           <div className="card-body px-0 pt-2 pb-3">
+          <PerfectScrollbar className="scroll-area-lg shadow-overflow">
+
             <table className="table table-hover table-borderless table-alternate text-nowrap mb-0">
               <thead>
                 <tr>
@@ -73,15 +38,16 @@ export default function FileTable() {
 
               <List />
             </table>
+          </PerfectScrollbar>
             <div className="divider mb-3" />
-            <div className="text-center">
+            {/* <div className="text-center">
               <Button color="primary">
                 <span className="btn-wrapper--label">View details</span>
                 <span className="btn-wrapper--icon">
                   <FontAwesomeIcon icon={['fas', 'chevron-right']} />
                 </span>
               </Button>
-            </div>
+            </div> */}
           </div>
         </Card>
     </Fragment>

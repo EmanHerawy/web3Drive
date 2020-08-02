@@ -12,7 +12,7 @@ const workercode = () => {
       console.log(key, 'key');
 
       let chunksize = 1000016;
-      let f = file//.content,
+      let f = file,//.content,
       chunks = Math.ceil(f.byteLength / chunksize),
         decryptedChunk = [];
 
