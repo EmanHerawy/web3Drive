@@ -59,7 +59,7 @@ export function getPubData() {
         // console.log({ data });
         publicFiles.push({
           name: data.name,
-          hash: data.hash,
+          cid: data.cid,
           size: data.size
         });
       },
@@ -87,8 +87,37 @@ export function getPrData() {
         // console.log({ data });
         privateFiles.push({
           name: data.name,
-          hash: data.hash,
+          cid: data.cid,
           size: data.size
+        });
+      },
+      err => {
+        console.log({
+          err
+        });
+        onError(err);
+
+        reject(err);
+      },
+      x => {
+        // <----
+        console.log('complete');
+        resolve(privateFiles);
+      }
+    );
+  });
+}
+export function getTableData() {
+  return new Promise((resolve, reject) => {
+    let privateFiles = [];
+    getUserFiles('privateFiles').subscribe(
+      data => {
+        // console.log({ data });
+        privateFiles.push({
+          name: data.name,
+          cid: data.cid,
+          size: data.size,
+          Key:""
         });
       },
       err => {
@@ -162,7 +191,7 @@ export const getUserFiles = function (tableName) {
 
         observer.next({
           name: cursor.value.name,
-          hash: cursor.value.hash,
+          cid: cursor.value.cid,
           size: cursor.value.size
         });
       } else {
@@ -300,10 +329,10 @@ export function createUserFileDB() {
     request.onupgradeneeded = e => {
       let db = e.target.result;
       const encryptedData = db.createObjectStore('publicFiles', {
-        keyPath: 'hash'
+        keyPath: 'cid'
       });
       const decryptedData = db.createObjectStore('privateFiles', {
-        keyPath: 'hash'
+        keyPath: 'cid'
       });
       // console.log({ encryptedData, encryptedData, db });
     };
