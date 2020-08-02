@@ -1,6 +1,8 @@
 import React, { Fragment, Component } from 'react';
 
-import { Grid, ListItem } from '@material-ui/core';
+import { Grid } from '@material-ui/core';
+
+import { LinearProgress } from '@material-ui/core';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Observable, Subject, combineLatest, from } from 'rxjs';
@@ -15,28 +17,90 @@ import {
   getFromDbEncryptedData,
   encryptData,
   bytesToHexString,
-  
-  hexStringToUint8Array
+  createUserFileDB,
+  hexStringToUint8Array,
+  onError
 } from '../../utils/helper';
+
+import { connect } from 'react-redux';
+import { addNewRow } from '../../reducers/data';
 
 import Dropzone from 'react-dropzone';
 let uploader$;
-export default class FileUploader extends Component {
+
+class Uploader extends Component {
   constructor(props) {
     super();
 
     this.state = {
-      node: props.node,
+      showProgress: false,
+      completed: 0,
+      buffer: 1,
       PFILES: [],
       files: []
     };
+    console.log(this.state, '  this.state');
   }
+  async handelIPFSUpload(fileName, stream, file, startTime) {
+    console.log(this.state, '  this.state');
+    console.log(this.props.node, '  this.props');
 
+    const fileAdded = await this.props.node.add(
+      {
+        path: fileName,
+        content: stream
+      },
+      {
+        wrapWithDirectory: true,
+        progress: bytesLoaded =>
+          this.updateProgressPrivate(bytesLoaded, file.size)
+      }
+    );
+
+    if (!this.state.PFILES.includes(fileAdded.cid.toString())) {
+      let endTime = new Date().getTime();
+      let res = Math.abs(startTime - endTime) / 1000;
+      let seconds = res % 60;
+      console.log({ fileAdded });
+
+      console.log(
+        `************ File has been uploaded to IPFS endTime is ${endTime} and total time is ${seconds} seconds***************`
+      );
+
+      const db = await createUserFileDB();
+      const dbData = {
+        name: file.name,
+        cid: fileAdded.cid.toString(),
+        size: file.size
+      };
+      await addToDb('privateFiles', dbData, db);
+      console.log(
+        `************ File has been saved to localstorage***************`
+      );
+
+      const cid = fileAdded.cid.toString();
+      this.props.addNewRow({
+        cid: cid,
+        name: file.name,
+        size: file.size,
+        key: 'sjdcsjfhjsfd'
+      });
+      this.resetProgress();
+      //  updateStorage();
+      // pinFile(fileAdded.cid.toString());
+
+      // appendFilePrivate(file.name, fileAdded.cid.toString(), file.size);
+      console.log(`we have received ***${fileName} in complete****`);
+    } else {
+      onError('The file is already in the current workspace.');
+      this.resetProgress();
+    }
+  }
   async onDrop(files) {
     //this.setState({ files });
     uploader$ = new Subject();
     let fileSize = 0;
-    let workerNum;
+    this.setState({ showProgress: true });
 
     let startTime = new Date().getTime();
     console.log(
@@ -59,7 +123,7 @@ export default class FileUploader extends Component {
           async data => {
             //workerNum = data;
             // remove workernum from storage
-            // await asyncLocalStorage.removeItem("eworker")
+            await asyncLocalStorage.removeItem('eworker');
             // console.log({ data: data.sort((a, b) => { return a.index - b.index }) });
             const cipher = data
               .sort((a, b) => {
@@ -80,40 +144,46 @@ export default class FileUploader extends Component {
                 controller.close();
               }
             });
-            console.log(file.name, 'file.name');
-            const name = file.name.replace(/\.[^/.]+$/, '');
+            // console.log(file.name, 'file.name');
+            // const name = file.name.replace(/\.[^/.]+$/, '');
             // const name = file.name.replace(/"([^"]+(?="))"/g, '$1');
-            console.log(name, 'name');
+            // console.log(name, 'name');
 
             const fileName = bytesToHexString(await encryptData(file.name));
             // console.log({ fileName });
-            this.props.handelUpload(fileName,stream,file,startTime);            
+            this.handelIPFSUpload(fileName, stream, file, startTime);
 
             // let x = await mockedGetFile(new Buffer(data));
-          
           },
           err => {
             console.log({ err });
-            //  onError(err)
+            onError(err);
 
-            //  resetProgressPrivate();
+            this.resetProgress();
           }
         );
 
-      let data = encryptWithWorkers(file);
+      encryptWithWorkers(file);
     }
     console.log('************ File is uploading  ***************');
   }
-  updateProgressPrivate(bytesLoaded, fileSize) {
-    let percent = 100 - (bytesLoaded / (fileSize * 2.6)) * 100;
 
-    // $progressBarPrivate.style.transform = `translateX(${-percent}%)`
-    console.log(
-      'hit progress percent,bytesLoaded,fileSize',
-      percent,
-      bytesLoaded,
-      fileSize * 2.6
-    );
+  updateProgressPrivate(bytesLoaded, fileSize) {
+    console.log(bytesLoaded, fileSize, 'bytesLoaded, fileSize');
+
+    let percent = (bytesLoaded / fileSize) * 100;
+    this.setState({
+      completed: percent,
+      buffer: percent + 10
+    });
+    console.log('hit progress percent,bytesLoaded,fileSize', percent);
+  }
+  resetProgress() {
+    this.setState({
+      completed: 0,
+      buffer: 1,
+      showProgress: false
+    });
   }
   onCancel() {
     this.setState({
@@ -122,19 +192,9 @@ export default class FileUploader extends Component {
   }
 
   render() {
-    const files = this.state.files.map(file => (
-      <ListItem key={file.name}>
-        {file.name} - {file.size} bytes
-      </ListItem>
-    ));
-
+    const { completed, buffer, showProgress } = this.state;
     return (
       <Fragment>
-        {/* <MuiAlert severity="warning">
-          This example does not actually upload any of the selected files, only
-          simulates the upload process!
-        </MuiAlert> */}
-
         <Grid container spacing={4} className="mt-4">
           <Grid item xs={12} sm={12}>
             <div className="dropzone">
@@ -153,6 +213,15 @@ export default class FileUploader extends Component {
                   </div>
                 )}
               </Dropzone>
+              {showProgress && (
+                <LinearProgress
+                  variant="buffer"
+                  value={completed}
+                  valueBuffer={buffer}
+                  className="mb-4"
+                  color="secondary"
+                />
+              )}
             </div>
           </Grid>
         </Grid>
@@ -169,8 +238,8 @@ const encryptWorker = (index, arr, key) => {
     // console.log({ db });
 
     let worker = new Worker(worker_script);
-    console.log(worker,'worker');
-    
+    console.log(worker, 'worker');
+
     // wait for a message and resolve
     worker.onmessage = ({ data }) => setData(data);
     // if we get an error, reject
@@ -190,7 +259,7 @@ const encryptWorker = (index, arr, key) => {
       } catch (error) {
         console.log({ error });
 
-        ////  onError("Hard disk full, please clear some space and try again.")
+        //onError("Hard disk full, please clear some space and try again.")
         console.log('Hard disk full, please clear some space and try again.');
       }
     };
@@ -261,7 +330,7 @@ async function encryptWithWorkers(file) {
     },
     err => {
       console.log({ err });
-      ////  onError(err)
+      //onError(err)
     },
     x => {
       // <----
@@ -278,210 +347,16 @@ async function encryptWithWorkers(file) {
   console.log(seconds, 'elapsed time in seconds for full encryption');
   // return concatArrayBuffers(result.sort((a, b) => { return a.index - b.index }).map(s => s.data).reduce((acc, arr) => acc.concat(arr), []))//result.reduce((acc, arr) => acc.concat(arr), []);
 }
+function mapDispatchToProps(dispatch) {
+  return {
+    addNewRow: row => dispatch(addNewRow(row))
+  };
+}
+const mapStateToProps = state => {
+  console.log(state.data, 'state');
 
-/**
+  return { node: state.data.node };
+};
+const FileUploader = connect(mapStateToProps, mapDispatchToProps)(Uploader);
 
-      const decryptWorker = (index, arr, key) => {
-        // console.log(index, arr, 'index, arr');
-        console.log(key, 'key');
-
-        const decryptor$ = Observable.create(async (observer) => {
-          let db = await createDB(`dworker${index}`, 1);
-          // console.log({ db });
-
-          let worker = createWorker(decryptionWebWorkerOnMessage.toString());
-          // wait for a message and resolve
-          worker.onmessage = ({ data }) => setData(data);
-          // if we get an error, reject
-          worker .//  onError = e => error.error(e);
-          // post a message to the worker
-          const setData = async (data) => {
-
-
-            // observer.next(data)
-            // console.log(data.decrypted, 'data.palintxt');
-            try {
-              await addToDb(`decryptedData`, data.decrypted, db)
-              if (data.isFinised) {
-                // console.log({ data });
-                db.close();
-                observer.complete();
-              }
-
-            } catch (error) {
-              console.log({ error });
-
-              ////  onError("Hard disk full, please clear some space and try again.")
-              console.log("Hard disk full, please clear some space and try again.")
-            }
-          }
-          console.log({ file: arr, index: index, key: key });
-
-          worker.postMessage({ file: arr, index: index, key: key }, [arr.buffer]);
-
-        });
-        return decryptor$//.subscribe(s=>{console.log(s,'ssssssss'); return s}        )
-
-      };
-      const asyncLocalStorage = {
-        setItem: function (key, value) {
-          return Promise.resolve().then(function () {
-            localStorage.setItem(key, value);
-            return true
-          });
-        },
-        getItem: function (key) {
-          return Promise.resolve().then(function () {
-            const data = localStorage.getItem(key)
-            // localStorage.removeItem(key)
-            return data;
-          });
-        },
-        removeItem: function (key) {
-          return Promise.resolve().then(function () {
-            localStorage.removeItem(key)
-            return true;
-          });
-        }
-      };
-    // helper func
-      function concatArrayBuffers(bufs) {
-        var offset = 0;
-        var bytes = 0;
-        var bufs2 = bufs.map(function (buf, total) {
-          bytes += buf.byteLength;
-          return buf;
-        });
-        var buffer = new ArrayBuffer(bytes);
-        var store = new Uint8Array(buffer);
-        bufs2.forEach(function (buf) {
-          store.set(new Uint8Array(buf.buffer || buf, buf.byteOffset), offset);
-          offset += buf.byteLength;
-        });
-        return buffer
-
-      }
-
-
-
-      async function onDropPrivate(event) {
-        onDragLeave()
-        //event.preventDefault()
-
-        const files = [];
-        files.push(event.data)
-
-
-        uploader$ = new Subject()
-        let workerNum;
-
-
-        let startTime = (new Date()).getTime();
-        console.log(`************ File received and being processed startTime is ${startTime} ***************`);
-        //const files = Array.from(event.dataTransfer.files)
-
-        for (const file of files) {
-
-          // const fileName =bytesToHexString( await encryptData(file.name))
-          // console.log({ fileName });
-          // const x = await decryptData(hexStringToUint8Array(fileName))
-          // console.log({ x });
-          let freeSpace;
-          navigator.storage.estimate().then(({ usage, quota }) => {
-            freeSpace = (quota - usage)
-            // console.log({ freeSpace });
-            fileSize = file.size // Note: fileSize is used by updateProgress
-            // console.log({ fileSize });
-            if (fileSize <= 1953349632 && freeSpace > (fileSize * 2.6)) {
-              uploader$.
-                pipe(
-                  switchMap(num => from(Array.from(Array(num).keys()))))
-                .pipe(
-                  mergeMap((index) => getFromDbEncryptedData(`encryptedData`, `eworker${index}`, index))
-                  ,
-                  toArray()
-                ).subscribe(async (data) => {
-                  //workerNum = data;
-                  // remove workernum from storage 
-                  // await asyncLocalStorage.removeItem("eworker")
-                  // console.log({ data: data.sort((a, b) => { return a.index - b.index }) });
-                  const cipher = data.sort((a, b) => { return a.index - b.index }).map(s => s.cipher);
-                  // console.log(cipher[0], 'cipher in drop');
-                  // console.log({ cipher: cipher[0] });
-
-                  const stream = new ReadableStream({
-                    start(controller) {
-                      for (let i = 0; i < cipher.length; i++) {
-                        // Add the files one by one
-                        controller.enqueue(cipher[i])
-                      }
-
-                      // When we have no more files to add, close the stream
-                      controller.close()
-                    }
-                  })
-                  console.log(file.name, 'file.name');
-                  const name = file.name.replace(/\.[^/.]+$/, "")
-                  // const name = file.name.replace(/"([^"]+(?="))"/g, '$1');
-                  console.log(name, 'name');
-
-                  const fileName = bytesToHexString(await encryptData(file.name))
-                  // console.log({ fileName });
-
-                  // let x = await mockedGetFile(new Buffer(data));
-                  const fileAdded = await node.add({
-                    path: fileName,
-                    content: stream
-                  }, {
-                    wrapWithDirectory: true,
-                    progress: updateProgressPrivate
-                  })
-                  if (!PFILES.includes(fileAdded.cid.toString())) {
-                    let endTime = (new Date()).getTime();
-                    let res = Math.abs(startTime - endTime) / 1000;
-                    let seconds = res % 60;
-                    console.log({ fileAdded });
-
-                    console.log(`************ File has been uploaded to IPFS endTime is ${endTime} and total time is ${seconds} seconds***************`);
-
-                    const db = await createUserFileDB();
-                    const dbData = { name: file.name, hash: fileAdded.cid.toString(), size: file.size }
-                    await addToDb("privateFiles", dbData, db)
-                    console.log(`************ File has been saved to localstorage***************`);
-
-                    $cidInputPrivate.value = fileAdded.cid.toString()
-
-                    //  resetProgressPrivate()
-                    //  updateStorage()
-                    pinFile(fileAdded.cid.toString())
-
-                    appendFilePrivate(file.name, fileAdded.cid.toString(), file.size)
-                    console.log(`we have received ***${data} in complete****`);
-                  } else {
-                    ////  onError("The file is already in the current workspace.")
-                    //  resetProgressPrivate()
-
-                  }
-
-                }, (err) => {
-                  console.log({ err });
-                  ////  onError(err)
-
-                  //  resetProgressPrivate()
-                })
-
-              let data = encryptWithWorkers(file);
-
-            } else {
-              freeSpace < (fileSize * 2.6) ? ////  onError("File is too large, please choose another file.") : ////  onError("Files are limited to 2GB, please choose another file")
-              freeSpace < (fileSize * 2.6) ? console.log("File is too large, please choose another file.") : console.log("Files are limited to 2GB, please choose another file")
-            }
-          })
-        }
-        console.log("************ File is uploading  ***************");
-
-        //   //
-        // }
-      }
-
- */
+export default FileUploader;
