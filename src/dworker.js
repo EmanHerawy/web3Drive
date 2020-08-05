@@ -72,6 +72,6 @@ const workercode = () => {
   const blob = new Blob([code], {type: "application/javascript"});
   const worker_script = URL.createObjectURL(blob);
   
-  module.exports = worker_script;
+export default worker_script;
   
   
