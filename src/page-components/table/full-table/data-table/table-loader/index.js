@@ -26,7 +26,7 @@ class TableDataLoader extends Component {
           cid: data.cid,
           name: data.name,
           size: data.size,
-          key: 'sjdcsjfhjsfd'
+          key: data.key
         });
       });
     });

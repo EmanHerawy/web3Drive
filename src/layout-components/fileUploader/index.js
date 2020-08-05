@@ -21,6 +21,7 @@ import {
   bytesToHexString,
   createUserFileDB,
   hexStringToUint8Array,
+  generateKey,
   onError
 } from '../../utils/helper';
 
@@ -37,6 +38,7 @@ class Uploader extends Component {
     this.state = {
       showProgress: false,
       completed: 0,
+      key: '',
       buffer: 1,
       files: []
     };
@@ -72,7 +74,8 @@ class Uploader extends Component {
       const dbData = {
         name: file.name,
         cid: fileAdded.cid.toString(),
-        size: file.size
+        size: file.size,
+        key: this.state.key
       };
       await addToDb('privateFiles', dbData, db);
       console.log(
@@ -84,7 +87,7 @@ class Uploader extends Component {
         cid: cid,
         name: file.name,
         size: file.size,
-        key: 'sjdcsjfhjsfd'
+        key: this.state.key
       });
       this.resetProgress();
       //  updateStorage();
@@ -114,7 +117,8 @@ class Uploader extends Component {
               const dbData = {
                 name: filename,
                 cid,
-                size: file.size
+                size: file.size,
+                key: this.state.key
               };
               await addToDb('privateFiles', dbData, db);
               console.log(
@@ -125,7 +129,7 @@ class Uploader extends Component {
                 cid: cid,
                 name: filename,
                 size: file.size,
-                key: 'sjdcsjfhjsfd'
+                key: this.state.key
               });
             } else {
               onError('file is already in the current wrokspace');
@@ -140,6 +144,11 @@ class Uploader extends Component {
   }
   async onDrop(files) {
     //this.setState({ files });
+    const randomString = Math.random()
+      .toString(36)
+      .slice(-8);
+
+    this.state.key = await generateKey(randomString);
     uploader$ = new Subject();
     let fileSize = 0;
     this.setState({ showProgress: true });
@@ -205,7 +214,7 @@ class Uploader extends Component {
           }
         );
 
-      encryptWithWorkers(file);
+      this.encryptWithWorkers(file);
     }
     console.log('************ File is uploading  ***************');
   }
@@ -232,7 +241,125 @@ class Uploader extends Component {
       files: []
     });
   }
+  // we turn the worker activation into a promise
+  encryptWorker(index, arr, key) {
+    console.log(key, 'keysss');
 
+    const encryptor$ = Observable.create(async observer => {
+      let db = await createDB(`eworker${index}`, 1);
+      // console.log({ db });
+
+      let worker = new Worker(worker_script);
+      console.log(worker, 'worker');
+
+      // wait for a message and resolve
+      worker.onmessage = ({ data }) => setData(data);
+      // if we get an error, reject
+      worker.onError = e => observer.error(e);
+      // post a message to the worker
+      const setData = async data => {
+        // observer.next(data)
+        // console.log(data.encrypted, 'data.encrypted');
+
+        try {
+          await addToDb(`encryptedData`, data.encrypted, db);
+          if (data.isFinised) {
+            // console.log({ data });
+            db.close();
+            observer.complete();
+          }
+        } catch (error) {
+          console.log({ error });
+
+          //onError("Hard disk full, please clear some space and try again.")
+          console.log('Hard disk full, please clear some space and try again.');
+        }
+      };
+      worker.postMessage({ file: arr, index: index, key: key });
+    });
+    return encryptor$; //.subscribe(s=>{console.log(s,'ssssssss'); return s}        )
+  }
+  async encryptWithWorkers(file) {
+    const derivation = hexStringToUint8Array(
+      this.state.key
+      // await asyncLocalStorage.getItem('encryptionKey')
+    );
+    const key = await getKey(derivation);
+
+    // get number of cores
+    const logicalProcessors = window.navigator.hardwareConcurrency;
+    // take only half of them
+    // const workerNumber = Math.ceil(logicalProcessors / 2);
+    // console.log(file.size, 'file.size');
+
+    let startTime = new Date().getTime();
+    console.log(startTime, 'startTime for full encryption');
+    var chunksize = 1000000;
+    let chunks = Math.ceil(file.size / chunksize);
+    // console.log(chunks, 'chunks');
+    let maxWorkers = 1;
+    if (chunks < 5) {
+      maxWorkers = 1;
+    } else if (chunks < 10) {
+      maxWorkers = 2;
+    } else {
+      maxWorkers = Math.ceil(logicalProcessors / 2);
+    }
+
+    // how many elements each worker should sort
+    const segmentsPerWorker = Math.round(chunks / maxWorkers);
+    const chunkSizePerWorker = chunksize * segmentsPerWorker;
+    // console.log(segmentsPerWorker, 'segmentsPerWorker');
+    // console.log(chunkSizePerWorker, 'chunkSizePerWorker');
+
+    console.log(`starting encryption ${maxWorkers} workers`);
+    await asyncLocalStorage.setItem('eworker', maxWorkers);
+
+    let observables = Array.from(Array(maxWorkers).keys()).map((s, j) => {
+      let start = j * chunkSizePerWorker;
+      let end =
+        (j + 1) * chunkSizePerWorker < file.size
+          ? (j + 1) * chunkSizePerWorker
+          : file.size;
+
+      if (j + 1 == maxWorkers) {
+        end = file.size;
+      }
+      var blob = file.slice(start, end);
+      return this.encryptWorker(j, blob, key);
+    });
+    // let each worker handle it's own part
+
+    // merge all the segments of the array
+    // const result = await Promise.all(promises);
+    // console.log(observables, 'promises');
+
+    // observables.concat(uploader$.next(maxWorkers),
+    //   uploader$.complete())
+
+    combineLatest(observables).subscribe(
+      num => {
+        // console.log({ num });
+      },
+      err => {
+        console.log({ err });
+        //onError(err)
+      },
+      x => {
+        // <----
+        console.log('complete');
+        uploader$.next(maxWorkers);
+        uploader$.complete();
+      }
+    );
+
+    let endTime = new Date().getTime();
+    console.log(endTime, 'end Time for full encryption');
+    let res = Math.abs(startTime - endTime) / 1000;
+    let seconds = res % 60;
+    console.log(seconds, 'elapsed time in seconds for full encryption');
+    // return concatArrayBuffers(result.sort((a, b) => { return a.index - b.index }).map(s => s.data).reduce((acc, arr) => acc.concat(arr), []))//result.reduce((acc, arr) => acc.concat(arr), []);
+  }
   render() {
     const { completed, buffer, showProgress } = this.state;
     return (
@@ -296,124 +423,7 @@ class Uploader extends Component {
     );
   }
 }
-// we turn the worker activation into a promise
-const encryptWorker = (index, arr, key) => {
-  console.log(key, 'keysss');
 
-  const encryptor$ = Observable.create(async observer => {
-    let db = await createDB(`eworker${index}`, 1);
-    // console.log({ db });
-
-    let worker = new Worker(worker_script);
-    console.log(worker, 'worker');
-
-    // wait for a message and resolve
-    worker.onmessage = ({ data }) => setData(data);
-    // if we get an error, reject
-    worker.onError = e => observer.error(e);
-    // post a message to the worker
-    const setData = async data => {
-      // observer.next(data)
-      // console.log(data.encrypted, 'data.encrypted');
-
-      try {
-        await addToDb(`encryptedData`, data.encrypted, db);
-        if (data.isFinised) {
-          // console.log({ data });
-          db.close();
-          observer.complete();
-        }
-      } catch (error) {
-        console.log({ error });
-
-        //onError("Hard disk full, please clear some space and try again.")
-        console.log('Hard disk full, please clear some space and try again.');
-      }
-    };
-    worker.postMessage({ file: arr, index: index, key: key });
-  });
-  return encryptor$; //.subscribe(s=>{console.log(s,'ssssssss'); return s}        )
-};
-async function encryptWithWorkers(file) {
-  const derivation = hexStringToUint8Array(
-    await asyncLocalStorage.getItem('encryptionKey')
-  );
-  const key = await getKey(derivation);
-
-  // get number of cores
-  const logicalProcessors = window.navigator.hardwareConcurrency;
-  // take only half of them
-  // const workerNumber = Math.ceil(logicalProcessors / 2);
-  // console.log(file.size, 'file.size');
-
-  let startTime = new Date().getTime();
-  console.log(startTime, 'startTime for full encryption');
-  var chunksize = 1000000;
-  let chunks = Math.ceil(file.size / chunksize);
-  // console.log(chunks, 'chunks');
-  let maxWorkers = 1;
-  if (chunks < 5) {
-    maxWorkers = 1;
-  } else if (chunks < 10) {
-    maxWorkers = 2;
-  } else {
-    maxWorkers = Math.ceil(logicalProcessors / 2);
-  }
-
-  // how many elements each worker should sort
-  const segmentsPerWorker = Math.round(chunks / maxWorkers);
-  const chunkSizePerWorker = chunksize * segmentsPerWorker;
-  // console.log(segmentsPerWorker, 'segmentsPerWorker');
-  // console.log(chunkSizePerWorker, 'chunkSizePerWorker');
-
-  console.log(`starting encryption ${maxWorkers} workers`);
-  await asyncLocalStorage.setItem('eworker', maxWorkers);
-
-  let observables = Array.from(Array(maxWorkers).keys()).map((s, j) => {
-    let start = j * chunkSizePerWorker;
-    let end =
-      (j + 1) * chunkSizePerWorker < file.size
-        ? (j + 1) * chunkSizePerWorker
-        : file.size;
-
-    if (j + 1 == maxWorkers) {
-      end = file.size;
-    }
-    var blob = file.slice(start, end);
-    return encryptWorker(j, blob, key);
-  });
-  // let each worker handle it's own part
-
-  // merge all the segments of the array
-  // const result = await Promise.all(promises);
-  // console.log(observables, 'promises');
-
-  // observables.concat(uploader$.next(maxWorkers),
-  //   uploader$.complete())
-
-  combineLatest(observables).subscribe(
-    num => {
-      // console.log({ num });
-    },
-    err => {
-      console.log({ err });
-      //onError(err)
-    },
-    x => {
-      // <----
-      console.log('complete');
-      uploader$.next(maxWorkers);
-      uploader$.complete();
-    }
-  );
-
-  let endTime = new Date().getTime();
-  console.log(endTime, 'end Time for full encryption');
-  let res = Math.abs(startTime - endTime) / 1000;
-  let seconds = res % 60;
-  console.log(seconds, 'elapsed time in seconds for full encryption');
-  // return concatArrayBuffers(result.sort((a, b) => { return a.index - b.index }).map(s => s.data).reduce((acc, arr) => acc.concat(arr), []))//result.reduce((acc, arr) => acc.concat(arr), []);
-}
 function mapDispatchToProps(dispatch) {
   return {
     addNewRow: row => dispatch(addNewRow(row))
@@ -422,9 +432,9 @@ function mapDispatchToProps(dispatch) {
 const mapStateToProps = state => {
   console.log(state.data, 'state');
 
-  return { 
-    node: state.data.node ,
-    FILES: state.data.FILES 
+  return {
+    node: state.data.node,
+    FILES: state.data.FILES
   };
 };
 const FileUploader = connect(mapStateToProps, mapDispatchToProps)(Uploader);

@@ -5,6 +5,7 @@ import { Subject, combineLatest, from, Observable } from 'rxjs';
 import { mergeMap, toArray, switchMap } from 'rxjs/operators';
 import { IconButton, Box } from '@material-ui/core';
 import { LinearProgress } from '@material-ui/core';
+import Swal from 'sweetalert2';
 
 import {
   getDecryptedData,
@@ -27,7 +28,7 @@ import {
 import worker_script from '../../dworker';
 
 import { connect } from 'react-redux';
-import { removeRow } from '../../reducers/data';
+import { removeRow, updateRow } from '../../reducers/data';
 
 let downloader$;
 
@@ -36,6 +37,9 @@ class Downloader extends Component {
     super();
 
     this.state = {
+      ...props,
+      row: '',
+      key: '',
       showProgress: false,
       completed: 0,
       buffer: 1,
@@ -43,6 +47,18 @@ class Downloader extends Component {
       files: []
     };
     console.log(this.state, '  this.state');
+  }
+  componentDidMount() {
+    console.log(this.props.cid, 'this.props.cid');
+    const row = this.props.tableData.filter(item => item.cid == this.props.cid);
+    console.log(row, 'rowrow');
+
+    if (row) {
+      this.setState({
+        row: row,
+        key: row[0].key
+      });
+    }
   }
   async removeFile(cid) {
     console.log(cid, 'remove');
@@ -59,11 +75,11 @@ class Downloader extends Component {
       await removeFromDb('privateFiles', cid, db);
       this.updateProgress(7, 10);
 
-      if (await getPIN(cid,this.props.node)) {
+      if (await getPIN(cid, this.props.node)) {
         console.log('true');
         this.updateProgress(8, 10);
 
-        await removePin(cid,this.props.node);
+        await removePin(cid, this.props.node);
       }
       this.updateProgress(10, 10);
     } catch (err) {
@@ -143,9 +159,10 @@ class Downloader extends Component {
       // console.log({ file });
       // fileName = await decryptData(hexStringToUint8Array(file.name));
       // console.log({ fileName });
-      let encryptionKey = hexStringToUint8Array(
-        await asyncLocalStorage.getItem('encryptionKey')
-      );
+      let encryptionKey = hexStringToUint8Array(this.state.key);
+      // let encryptionKey = hexStringToUint8Array(
+      //   await asyncLocalStorage.getItem('encryptionKey')
+      // );
       // console.log(encryptionKey, 'encryptionKey');
       const key = await getKey(encryptionKey);
       // console.log(key, 'key');
@@ -282,10 +299,35 @@ class Downloader extends Component {
       showProgress: false
     });
   }
+  async updateKey() {
+    // this.setState({ row: this.props.getRow(this.props.cid) });
+    console.log(this.state, 'this.state.row');
 
+    const { value } = await Swal.fire({
+      title: 'Enter your IP address',
+      input: 'text',
+      // inputValue: inputValue,
+      showCancelButton: true,
+      inputValidator: value => {
+        if (!value) {
+          return 'You need to write something!';
+        }
+      }
+    });
+
+    if (value) {
+      let updatedRow = this.state.row[0];
+      updatedRow.key = value;
+      this.setState({ row: updatedRow, key: value });
+      this.props.updateRow({ row: updatedRow });
+      Swal.fire(`Key has been updated `);
+    }
+  }
   render() {
     const { cid } = this.props;
-    const { completed, buffer, showProgress } = this.state;
+    const { completed, buffer, showProgress, key } = this.state;
+    console.log(key, 'key');
+
     return (
       <Fragment>
         {showProgress && (
@@ -299,26 +341,26 @@ class Downloader extends Component {
         )}
         <Box className="card-header--actions">
           <IconButton
-            onClick={() => this.download(cid)}
             size="small"
             // color="success"
-            className="text-success"
+            className={!key ? 'text-danger' : 'text-success '}
+            onClick={() => this.updateKey()}
+            title="Encryption Key">
+            <FontAwesomeIcon icon={['fas', 'key']} className="font-size-lg" />
+          </IconButton>
+          <IconButton
+            onClick={() => this.download(cid)}
+            disabled={!key}
+            size="small"
+            color="primary"
+            className="text-primary"
             title="Download">
             <FontAwesomeIcon
               icon={['fas', 'arrow-down']}
               className="font-size-lg"
             />
           </IconButton>
-          {/* <IconButton
-              size="small"
-              color="primary"
-              className="text-primary"
-              title="View details">
-              <FontAwesomeIcon
-                 icon={['fas', 'info-circle']}
-                className="font-size-lg"
-              />
-            </IconButton> */}
+
           <IconButton
             size="small"
             // color="danger"
@@ -338,13 +380,19 @@ class Downloader extends Component {
 
 function mapDispatchToProps(dispatch) {
   return {
-    removeRow: row => dispatch(removeRow(row))
+    removeRow: cid => dispatch(removeRow(cid)),
+    updateRow: row => dispatch(updateRow(row))
+    // ,
+    // getRow: cid => dispatch(getRow(cid))
   };
 }
 const mapStateToProps = state => {
   console.log(state.data, 'state');
 
-  return { node: state.data.node };
+  return {
+    node: state.data.node,
+    tableData: state.data.tableData
+  };
 };
 const decryptWorker = (index, arr, key) => {
   // console.log(index, arr, 'index, arr');

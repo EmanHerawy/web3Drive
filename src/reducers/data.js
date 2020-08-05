@@ -1,8 +1,10 @@
 // Sidebar
 
 export const ADD_NEW_ROW = 'ADD_NEW_ROW';
+export const UPDATE_ROW = 'UPDATE_ROW';
 export const INIT_IPFS = 'INIT_IPFS';
 export const REMOVE_ROW = 'REMOVE_ROW';
+export const GET_ROW = 'GET_ROW';
 
 export const addNewRow = row => ({
   type: ADD_NEW_ROW,
@@ -11,6 +13,14 @@ export const addNewRow = row => ({
 export const initIPFS = node => ({
   type: INIT_IPFS,
   node
+});
+export const getRow = cid => ({
+  type: GET_ROW,
+  cid
+});
+export const updateRow = row => ({
+  type: UPDATE_ROW,
+  row
 });
 export const removeRow = cid => ({
   type: REMOVE_ROW,
@@ -53,6 +63,20 @@ export default function reducer(
         tableData: state.tableData.filter(item => item.cid !== action.cid),
         FILES: state.FILES.filter(item => item !== action.cid)
       };
+    case UPDATE_ROW:
+      console.log(action,state, 'action.row');
+
+      return {
+        ...state,
+        tableData: state.tableData.map(row =>
+          row.cid === action.row.cid ? action.row : row
+        )
+         
+      };
+    case GET_ROW:
+      console.log(action, 'action');
+
+      return state.tableData.filter(item => item.cid == action.cid);
 
     default:
       break;

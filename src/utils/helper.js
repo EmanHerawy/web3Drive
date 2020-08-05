@@ -1,25 +1,25 @@
 import {
   Observable
 } from 'rxjs';
-import Swal from 'sweetalert2'
+import Swal from 'sweetalert2';
 
 export const asyncLocalStorage = {
   setItem: (key, value) => {
     return Promise.resolve().then(() => {
       localStorage.setItem(key, value);
-      return true
+      return true;
     });
   },
-  getItem: (key) => {
+  getItem: key => {
     return Promise.resolve().then(() => {
-      const data = localStorage.getItem(key)
+      const data = localStorage.getItem(key);
       // localStorage.removeItem(key)
       return data;
     });
   },
-  removeItem: (key) => {
+  removeItem: key => {
     return Promise.resolve().then(() => {
-      localStorage.removeItem(key)
+      localStorage.removeItem(key);
       return true;
     });
   }
@@ -36,19 +36,18 @@ export function downloadObjectAsJson(exportObj, exportName) {
   downloadAnchorNode.remove();
 }
 
-
 export function downloadFile(fileName, data, cid) {
   // console.log({ fileName });
   // fileName = URLEncoder.encode(fileName, "UTF-8");
   // console.log({ fileName });
- 
+
   const file = new window.Blob([data], {
     type: 'application/octet-binary;charset=UTF-8'
-  })
-  const url = window.URL.createObjectURL(file)
-  let a = document.createElement("a");
+  });
+  const url = window.URL.createObjectURL(file);
+  let a = document.createElement('a');
   document.body.appendChild(a);
-  a.style = "display: none";
+  a.style = 'display: none';
   a.href = url;
   a.download = fileName;
   a.click();
@@ -61,7 +60,7 @@ export async function exportFile() {
   userData.nodex = localStorage.getItem('nodeid');
   userData.encryptionKey = await asyncLocalStorage.getItem('encryptionKey');
   // get user data from indexdb
-  userData.publicFiles = await getPubData();
+  // userData.publicFiles = await getPubData();
   userData.privateFiles = await getPrData();
   console.log({
     userData
@@ -70,34 +69,34 @@ export async function exportFile() {
   downloadObjectAsJson(userData, 'userData');
 }
 
-export function getPubData() {
-  return new Promise(function (resolve, reject) {
-    let publicFiles = [];
-    getUserFiles('publicFiles').subscribe(
-      data => {
-        // console.log({ data });
-        publicFiles.push({
-          name: data.name,
-          cid: data.cid,
-          size: data.size
-        });
-      },
-      err => {
-        console.log({
-          err
-        });
-        onError(err);
+// export function getPubData() {
+//   return new Promise(function (resolve, reject) {
+//     let publicFiles = [];
+//     getUserFiles('publicFiles').subscribe(
+//       data => {
+//         // console.log({ data });
+//         publicFiles.push({
+//           name: data.name,
+//           cid: data.cid,
+//           size: data.size
+//         });
+//       },
+//       err => {
+//         console.log({
+//           err
+//         });
+//         onError(err);
 
-        reject(err);
-      },
-      x => {
-        // <----
-        console.log('complete');
-        resolve(publicFiles);
-      }
-    );
-  });
-}
+//         reject(err);
+//       },
+//       x => {
+//         // <----
+//         console.log('complete');
+//         resolve(publicFiles);
+//       }
+//     );
+//   });
+// }
 export function getPrData() {
   return new Promise((resolve, reject) => {
     let privateFiles = [];
@@ -131,12 +130,12 @@ export function getTableData() {
     let privateFiles = [];
     getUserFiles('privateFiles').subscribe(
       data => {
-        // console.log({ data });
+        console.log({ data });
         privateFiles.push({
           name: data.name,
           cid: data.cid,
           size: data.size,
-          Key: ""
+          key: data.key
         });
       },
       err => {
@@ -155,7 +154,6 @@ export function getTableData() {
     );
   });
 }
-
 
 export const getFromDbEncryptedData = function (tableName, dbName, index) {
   return Observable.create(async observer => {
@@ -211,6 +209,7 @@ export const getUserFiles = function (tableName) {
         observer.next({
           name: cursor.value.name,
           cid: cursor.value.cid,
+          key: cursor.value.key,
           size: cursor.value.size
         });
       } else {
@@ -268,6 +267,43 @@ export function addToDb(tableName, obj, db) {
     // console.log({obj});
 
     resolve(store);
+  });
+}
+export function getSingleValue(tableName, index, db) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(tableName, 'readwrite');
+    tx.onerror = e => reject(e.target.error);
+    const store = tx.objectStore(tableName);
+    const request = store.get(index);
+    // console.log({obj});
+    request.onerror = e => reject(e.target.error);
+    request.onsuccess = e => resolve(request.result);
+
+  });
+}
+export function updateSingleValue(tableName, index, key, db) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(tableName, 'readwrite');
+    tx.onerror = e => reject(e.target.error);
+    const store = tx.objectStore(tableName);
+    const request = store.get(index);
+    // console.log({obj});
+    request.onerror = e => reject(e.target.error);
+    request.onsuccess = e => {
+      var data = e.target.result;
+
+      // update the value(s) in the object that you want to change
+      data.key = key;
+
+      // Put this updated object back into the database.
+      var requestUpdate = store.put(data);
+      requestUpdate.onerror = function (event) {
+        // Do something with the error
+      };
+      requestUpdate.onsuccess = function (event) {
+        // Success - the data is updated!
+      };
+    }
   });
 }
 export function clearUserData(tableName) {
@@ -371,25 +407,41 @@ export function createUserFileDB() {
   });
 }
 /***********************/
-const hash = "SHA-256";
-const salt = window.crypto.getRandomValues(new Uint8Array(16)) //"SALT";
-const password = "PASSWORD";
+const hash = 'SHA-256';
+const salt = window.crypto.getRandomValues(new Uint8Array(16)); //"SALT";
+const password = 'PASSWORD';
 const iteratrions = 1000;
 const keyLength = 48;
 
-export async function getDerivation(hash, salt, password, iterations, keyLength) {
-  const textEncoder = new TextEncoder("utf-8");
+export async function getDerivation(
+  hash,
+  salt,
+  password,
+  iterations,
+  keyLength
+) {
+  const textEncoder = new TextEncoder('utf-8');
   const passwordBuffer = textEncoder.encode(password);
-  const importedKey = await crypto.subtle.importKey("raw", passwordBuffer, "PBKDF2", false, ["deriveBits"]);
+  const importedKey = await crypto.subtle.importKey(
+    'raw',
+    passwordBuffer,
+    'PBKDF2',
+    false,
+    ['deriveBits']
+  );
 
   const saltBuffer = textEncoder.encode(salt);
   const params = {
-    name: "PBKDF2",
+    name: 'PBKDF2',
     hash: hash,
     salt: saltBuffer,
     iterations: iterations
   };
-  const derivation = await crypto.subtle.deriveBits(params, importedKey, keyLength * 8);
+  const derivation = await crypto.subtle.deriveBits(
+    params,
+    importedKey,
+    keyLength * 8
+  );
   // console.log(derivation, 'derivation');
 
   return derivation;
@@ -400,52 +452,62 @@ export async function getKey(derivation) {
   const keylen = 32;
   const derivedKey = derivation.slice(0, keylen);
   const iv = derivation.slice(keylen);
-  const importedEncryptionKey = await crypto.subtle.importKey('raw', derivedKey, {
-    name: 'AES-CBC'
-  }, false, ['encrypt', 'decrypt']);
+  const importedEncryptionKey = await crypto.subtle.importKey(
+    'raw',
+    derivedKey, {
+      name: 'AES-CBC'
+    },
+    false,
+    ['encrypt', 'decrypt']
+  );
   return {
     key: importedEncryptionKey,
     iv: iv
-  }
+  };
 }
 
 export async function encrypt(text, keyObject) {
   try {
-    const textEncoder = new TextEncoder("utf-8");
+    const textEncoder = new TextEncoder('utf-8');
     const textBuffer = textEncoder.encode(text);
     const encryptedText = await crypto.subtle.encrypt({
-      name: 'AES-CBC',
-      iv: keyObject.iv
-    }, keyObject.key, textBuffer);
+        name: 'AES-CBC',
+        iv: keyObject.iv
+      },
+      keyObject.key,
+      textBuffer
+    );
     return encryptedText;
   } catch (error) {
     //onError(error)
-
   }
 }
 
 export async function decrypt(encryptedText, keyObject) {
   try {
-    const textDecoder = new TextDecoder("utf-8");
+    const textDecoder = new TextDecoder('utf-8');
     const decryptedText = await crypto.subtle.decrypt({
-      name: 'AES-CBC',
-      iv: keyObject.iv
-    }, keyObject.key, encryptedText);
+        name: 'AES-CBC',
+        iv: keyObject.iv
+      },
+      keyObject.key,
+      encryptedText
+    );
     return textDecoder.decode(decryptedText);
-
   } catch (error) {
     console.log({
       error
     });
     ////onError(error)
-
   }
 }
 
 export async function encryptData(text) {
   // console.log('encrypt name');
 
-  const derivation = hexStringToUint8Array(await asyncLocalStorage.getItem('encryptionKey'));
+  const derivation = hexStringToUint8Array(
+    await asyncLocalStorage.getItem('encryptionKey')
+  );
   // const derivation = await getDerivation(hash, salt, password, iteratrions, keyLength);
   // console.log(derivation, 'derivation');
 
@@ -457,7 +519,9 @@ export async function encryptData(text) {
 export async function decryptData(encryptedObject) {
   // console.log(encryptedObject, 'encryptedObject');
 
-  const derivation = hexStringToUint8Array(await asyncLocalStorage.getItem('encryptionKey'));
+  const derivation = hexStringToUint8Array(
+    await asyncLocalStorage.getItem('encryptionKey')
+  );
   // console.log(derivation, 'derivation');
 
   // const derivation = await getDerivation(hash, salt, password, iteratrions, keyLength);
@@ -465,11 +529,16 @@ export async function decryptData(encryptedObject) {
   // console.log({ encryptedObject, keyObject });
 
   const decryptedObject = await decrypt(encryptedObject, keyObject);
-  return JSON.parse(decryptedObject)
+  return JSON.parse(decryptedObject);
 }
 export async function generateKey(pass) {
-
-  const derivation = await getDerivation(hash, salt, password, iteratrions, keyLength);
+  const derivation = await getDerivation(
+    hash,
+    salt,
+    pass,
+    iteratrions,
+    keyLength
+  );
 
   const randomizedKey = bytesToHexString(derivation);
   // console.log(randomizedKey, 'randomizedKey');
@@ -477,41 +546,36 @@ export async function generateKey(pass) {
   return randomizedKey;
 }
 export function hexStringToUint8Array(hexString) {
-  if (hexString.length % 2 != 0)
-    throw "Invalid hexString";
+  if (hexString.length % 2 != 0) throw 'Invalid hexString';
   let arrayBuffer = new Uint8Array(hexString.length / 2);
 
   for (let i = 0; i < hexString.length; i += 2) {
     let byteValue = parseInt(hexString.substr(i, 2), 16);
-    if (byteValue == NaN)
-      throw "Invalid hexString";
+    if (byteValue == NaN) throw 'Invalid hexString';
     arrayBuffer[i / 2] = byteValue;
   }
 
   return arrayBuffer;
 }
 export function bytesToHexString(bytes) {
-  if (!bytes)
-    return null;
+  if (!bytes) return null;
 
   bytes = new Uint8Array(bytes);
   let hexBytes = [];
 
   for (let i = 0; i < bytes.length; ++i) {
     let byteString = bytes[i].toString(16);
-    if (byteString.length < 2)
-      byteString = "0" + byteString;
+    if (byteString.length < 2) byteString = '0' + byteString;
     hexBytes.push(byteString);
   }
 
-  return hexBytes.join("");
+  return hexBytes.join('');
 }
-
 
 export function onSuccess(msg) {
   // $logs.classList.add('success')
   // $logs.innerHTML = msg
-  // call sweetalert2 here 
+  // call sweetalert2 here
   // Swal.fire({
   //   position: 'top-end',
   //   icon: 'success',
@@ -521,25 +585,27 @@ export function onSuccess(msg) {
   // })
 }
 export function clearDbs(identifier, number) {
-  Array.from(Array(number).keys()).map((j) => {
-
-    removeDb(`${identifier}${j}`).then(async () => {
-      onSuccess(`${identifier}${j} has been cleared`)
-      if (j + 1 == number) await asyncLocalStorage.removeItem(`${identifier}`)
-    }).catch((err) => {
-      onError(err)
-    })
-  })
+  Array.from(Array(number).keys()).map(j => {
+    removeDb(`${identifier}${j}`)
+      .then(async () => {
+        onSuccess(`${identifier}${j} has been cleared`);
+        if (j + 1 == number)
+          await asyncLocalStorage.removeItem(`${identifier}`);
+      })
+      .catch(err => {
+        onError(err);
+      });
+  });
 }
 
 export function onError(err) {
   // console.log(err)
-  let msg = 'An error occured, check the dev console'
+  let msg = 'An error occured, check the dev console';
 
   if (err.stack !== undefined) {
-    msg = err.stack
+    msg = err.stack;
   } else if (typeof err === 'string') {
-    msg = err
+    msg = err;
   }
 
   // $logs.classList.remove('success')
@@ -550,7 +616,7 @@ export function onError(err) {
     title: msg,
     showConfirmButton: false,
     timer: 1500
-  })
+  });
 }
 export function concatArrayBuffers(bufs) {
   let offset = 0;
@@ -565,12 +631,11 @@ export function concatArrayBuffers(bufs) {
     store.set(new Uint8Array(buf.buffer || buf, buf.byteOffset), offset);
     offset += buf.byteLength;
   });
-  return buffer
-
+  return buffer;
 }
 
 export function preChunkingSetup(size) {
-  const logicalProcessors = window.navigator.hardwareConcurrency
+  const logicalProcessors = window.navigator.hardwareConcurrency;
   // proposed worker shoud be up to 3 or 4
   var chunksize = 1000016;
   let chunks = Math.ceil(size / chunksize);
@@ -585,52 +650,52 @@ export function preChunkingSetup(size) {
     maxWorkers = Math.ceil(logicalProcessors / 2);
   }
 
-
-
   // how many elements each worker should sort
   const segmentsPerWorker = Math.round(chunks / maxWorkers);
-  const chunkSizePerWorker = maxWorkers == 1 ? size : chunksize * segmentsPerWorker;
+  const chunkSizePerWorker =
+    maxWorkers == 1 ? size : chunksize * segmentsPerWorker;
   // console.log(chunkSizePerWorker, segmentsPerWorker, 'chunkSizePerWorker');
 
   console.log(`starting decryption ${maxWorkers} workers`);
   return {
     maxWorkers,
     chunkSizePerWorker
-  }
+  };
 }
 
-
-
-    
-
-export async function removePin(hash,node) {
+export async function removePin(hash, node) {
   if (hash) {
-    console.log("Remove Pinn...")
-    const pinset = await node.pin.rm(hash)
-    console.log(pinset)
-    onSuccess(`Pin removed.`)
-  }
-  else {
-    onError("Can't remove pin for empty CID")
-  }
-}
- 
-
-
-export async function getPINS(event,node) {
-  for await (const { cid, type } of node.pin.ls()) {
-    console.log({ cid, type })
+    console.log('Remove Pinn...');
+    const pinset = await node.pin.rm(hash);
+    console.log(pinset);
+    onSuccess(`Pin removed.`);
+  } else {
+    onError("Can't remove pin for empty CID");
   }
 }
-export function getPIN(hash,node) {
+
+export async function getPINS(event, node) {
+  for await (const {
+    cid,
+    type
+  } of node.pin.ls()) {
+    console.log({
+      cid,
+      type
+    });
+  }
+}
+export function getPIN(hash, node) {
   return new Promise(async (resolve, reject) => {
-    for await (const { cid, type } of node.pin.ls()) {
+    for await (const {
+      cid,
+      type
+    } of node.pin.ls()) {
       // console.log({ cid, type })
       if (cid == hash) {
-        resolve(true)
+        resolve(true);
       }
     }
-    resolve(false)
-
+    resolve(false);
   });
 }

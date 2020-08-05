@@ -14,12 +14,16 @@ import {
   Divider
 } from '@material-ui/core';
 
+import {get3BoxIdentity} from '../../utils/3box';
 import avatar5 from '../../assets/images/avatars/avatar5.jpg';
 export default function HeaderUserbox() {
   const [anchorEl, setAnchorEl] = React.useState(null);
 
   const handleClick = async event => {
     //  setAnchorEl(event.currentTarget);
+    const identity = await get3BoxIdentity();
+    console.log(identity,'identity');
+    
     const providerOptions = {
       /* See Provider Options Section */
     };
