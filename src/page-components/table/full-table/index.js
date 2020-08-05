@@ -30,7 +30,7 @@ const ConnectedList = ({ tableData }) => (
         </td>
         <td className="text-right">
           <div className="d-flex align-items-center justify-content-end">
-            <div className="font-weight-bold font-size-lg pr-2">22222</div>
+            <div className="font-weight-bold font-size-lg pr-2"></div>
             <FontAwesomeIcon
               icon={['fas', 'arrow-down']}
               className="font-size-sm opacity-5"

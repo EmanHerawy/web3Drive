@@ -58,7 +58,7 @@ export async function exportFile() {
   let userData = {};
 
   userData.nodex = localStorage.getItem('nodeid');
-  userData.encryptionKey = await asyncLocalStorage.getItem('encryptionKey');
+  // userData.encryptionKey = await asyncLocalStorage.getItem('encryptionKey');
   // get user data from indexdb
   // userData.publicFiles = await getPubData();
   userData.privateFiles = await getPrData();
@@ -306,6 +306,8 @@ export function updateSingleValue(tableName, index, key, db) {
     }
   });
 }
+
+
 export function clearUserData(tableName) {
   return new Promise(async (resolve, reject) => {
     const db = await createUserFileDB();

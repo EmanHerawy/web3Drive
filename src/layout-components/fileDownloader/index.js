@@ -19,6 +19,7 @@ import {
   getKey,
   addToDb,
   createUserFileDB,
+  updateSingleValue,
   removeFromDb,
   getPIN,
   removePin,
@@ -320,6 +321,8 @@ class Downloader extends Component {
       updatedRow.key = value;
       this.setState({ row: updatedRow, key: value });
       this.props.updateRow({ row: updatedRow });
+      const db = await createUserFileDB();
+      updateSingleValue('privateFiles', updatedRow.cid, value, db);
       Swal.fire(`Key has been updated `);
     }
   }
@@ -345,7 +348,7 @@ class Downloader extends Component {
             // color="success"
             className={!key ? 'text-danger' : 'text-success '}
             onClick={() => this.updateKey()}
-            title="Encryption Key">
+            title={!key ? 'Add Encryption Key' : 'Update Encryption Key'}>
             <FontAwesomeIcon icon={['fas', 'key']} className="font-size-lg" />
           </IconButton>
           <IconButton
