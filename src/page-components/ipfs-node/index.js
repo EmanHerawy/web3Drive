@@ -144,7 +144,7 @@ class IPFSNode extends Component {
   render() {
     const { info } = this.state;
     return (
-      <span>node id {info.id}</span>
+      <span></span>
       //   <form onSubmit={this.handleSubmit}>
       //     <div>
       //       <label htmlFor="title">Title</label>
