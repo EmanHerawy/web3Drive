@@ -21,13 +21,13 @@ const LandingPage = () => {
             <IPFSNode />
             <div className="bg-composed-wrapper--bg bg-second opacity-3" />
             <div className="bg-composed-wrapper--bg bg-red-lights opacity-1" />
-            <div className="bg-composed-wrapper--content pt-5 pb-2 py-lg-5">
+            <div className="bg-composed-wrapper--content pt-5 pb-2 py-lg-5 table-responsive">
               <Container maxWidth="xl" className="pb-5">
                 <Grid container spacing={5}>
                   <Grid
                     item
                      className="px-0 mx-auto d-flex align-items-center">
-                    <div className="text-center">
+                    <div className="text-center ">
                       {/* <Tooltip arrow placement="top" title="Version: 1.0.0">
                       <span className="badge badge-success px-4 text-uppercase h-auto py-1">
                       </span>

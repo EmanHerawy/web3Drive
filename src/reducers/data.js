@@ -27,6 +27,7 @@ export default function reducer(
   state = {
     // table
     tableData: [],
+    FILES: [],
     node: {}
   },
   action
@@ -36,7 +37,8 @@ export default function reducer(
 
     case ADD_NEW_ROW:
       return Object.assign({}, state, {
-        tableData: state.tableData.concat(action.row)
+        tableData: state.tableData.concat(action.row),
+        FILES: state.FILES.concat(action.row.cid)
       });
     case INIT_IPFS:
       console.log(action, 'action.payload');
@@ -48,7 +50,8 @@ export default function reducer(
     case REMOVE_ROW:
       return {
         ...state,
-        tableData: state.tableData.filter(item => item.cid !== action.cid)
+        tableData: state.tableData.filter(item => item.cid !== action.cid),
+        FILES: state.FILES.filter(item => item !== action.cid)
       };
 
     default:

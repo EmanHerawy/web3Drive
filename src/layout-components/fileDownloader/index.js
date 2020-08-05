@@ -301,7 +301,7 @@ class Downloader extends Component {
           <IconButton
             onClick={() => this.download(cid)}
             size="small"
-            color="success"
+            // color="success"
             className="text-success"
             title="Download">
             <FontAwesomeIcon
@@ -321,7 +321,7 @@ class Downloader extends Component {
             </IconButton> */}
           <IconButton
             size="small"
-            color="danger"
+            // color="danger"
             onClick={() => this.removeFile(cid)}
             className="text-danger"
             title="Delete">

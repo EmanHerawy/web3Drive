@@ -1,13 +1,12 @@
 import React, { Fragment } from 'react';
 
- 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 import { Card, Button } from '@material-ui/core';
- 
+
 import { connect } from 'react-redux';
- 
- const mapStateToProps = state => {
+
+const mapStateToProps = state => {
   console.log(state.data);
 
   return { tableData: state.data.tableData };
@@ -49,39 +48,41 @@ export default function FileTable() {
 
   return (
     <Fragment>
-        <Card className="card-box mb-4">
-          <div className="card-header">
-            <div className="card-header--title">
-              <h4 className="font-size-lg mb-0 py-2 font-weight-bold">
-                File list
-              </h4>
-            </div>
+      <Card className="card-box mb-4">
+        <div className="card-header">
+          <div className="card-header--title">
+            <h4 className="font-size-lg mb-0 py-2 font-weight-bold">
+              File list
+            </h4>
           </div>
-          <div className="card-body px-0 pt-2 pb-3">
-            <table className="table table-hover table-borderless table-alternate text-nowrap mb-0">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th className="text-center">CID</th>
-                  <th className="text-center">Size</th>
-                  <th className="text-center">Status</th>
-                  <th className="text-right">Actions</th>
-                </tr>
-              </thead>
+        </div>
+        <div className="card-body px-0 pt-2 pb-3 ">
+          <table
+            className="table table-hover table-borderless table-alternate table-responsive mb-0"
+            style={{ 'word-wrap': 'break-word', ' table-layout': 'fixed' }}>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th className="text-center">CID</th>
+                <th className="text-center">Size</th>
+                <th className="text-center">Status</th>
+                <th className="text-right">Actions</th>
+              </tr>
+            </thead>
 
-              <List />
-            </table>
-            <div className="divider mb-3" />
-            <div className="text-center">
-              <Button color="primary">
-                <span className="btn-wrapper--label">View details</span>
-                <span className="btn-wrapper--icon">
-                  <FontAwesomeIcon icon={['fas', 'chevron-right']} />
-                </span>
-              </Button>
-            </div>
+            <List />
+          </table>
+          <div className="divider mb-3" />
+          <div className="text-center">
+            <Button color="primary">
+              <span className="btn-wrapper--label">View details</span>
+              <span className="btn-wrapper--icon">
+                <FontAwesomeIcon icon={['fas', 'chevron-right']} />
+              </span>
+            </Button>
           </div>
-        </Card>
-     </Fragment>
+        </div>
+      </Card>
+    </Fragment>
   );
 }

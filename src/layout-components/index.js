@@ -13,4 +13,5 @@ export { default as ExampleWrapperContainer } from './ExampleWrapperContainer';
 export { default as FileTable } from './table';
 export { default as FileUploader } from './fileUploader';
 export { default as FileDownloader } from './fileDownloader';
+export { default as FetchComponent } from './fetch-component';
  

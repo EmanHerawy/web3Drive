@@ -66,7 +66,7 @@ const Header = props => {
           </Hidden>
           <Hidden mdDown>
             <Box className="d-flex align-items-center">
-              <Button
+              {/* <Button
                 // href="https://themes.material-ui.com/themes/carolina-react-admin-dashboard-free"
                 rel="noopener"
                 target="_blank"
@@ -74,9 +74,9 @@ const Header = props => {
                 variant="contained"
                 color="default"
                 className="mr-3">
-                Connected to FileCoin
-              </Button>
-      
+                Fetch
+                </Button> */}
+      {/* <FetchComponent/> */}
             </Box>
           </Hidden>
           <Box className="d-flex align-items-center">

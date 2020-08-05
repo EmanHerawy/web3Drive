@@ -2,7 +2,8 @@ import React, { Fragment, Component } from 'react';
 
 import { Grid } from '@material-ui/core';
 
-import { LinearProgress } from '@material-ui/core';
+import { FetchComponent } from '../index.js';
+import { LinearProgress, Box } from '@material-ui/core';
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Observable, Subject, combineLatest, from } from 'rxjs';
@@ -16,6 +17,7 @@ import {
   getKey,
   getFromDbEncryptedData,
   encryptData,
+  decryptData,
   bytesToHexString,
   createUserFileDB,
   hexStringToUint8Array,
@@ -36,7 +38,6 @@ class Uploader extends Component {
       showProgress: false,
       completed: 0,
       buffer: 1,
-      PFILES: [],
       files: []
     };
     console.log(this.state, '  this.state');
@@ -57,7 +58,7 @@ class Uploader extends Component {
       }
     );
 
-    if (!this.state.PFILES.includes(fileAdded.cid.toString())) {
+    if (!this.props.FILES.includes(fileAdded.cid.toString())) {
       let endTime = new Date().getTime();
       let res = Math.abs(startTime - endTime) / 1000;
       let seconds = res % 60;
@@ -94,6 +95,47 @@ class Uploader extends Component {
     } else {
       onError('The file is already in the current workspace.');
       this.resetProgress();
+    }
+  }
+  async handleFetch(cid) {
+    if (!cid) {
+      return onError('No CID was inserted.');
+    } else {
+      for await (const file of this.props.node.get(cid)) {
+        console.log({ file });
+        // try decrypt it
+        try {
+          const filename = await decryptData(hexStringToUint8Array(file.name));
+          console.log({ filename });
+
+          if (file.size != 0) {
+            if (!this.props.FILES.includes(cid)) {
+              const db = await createUserFileDB();
+              const dbData = {
+                name: filename,
+                cid,
+                size: file.size
+              };
+              await addToDb('privateFiles', dbData, db);
+              console.log(
+                `************ File has been saved to localstorage***************`
+              );
+
+              this.props.addNewRow({
+                cid: cid,
+                name: filename,
+                size: file.size,
+                key: 'sjdcsjfhjsfd'
+              });
+            } else {
+              onError('file is already in the current wrokspace');
+            }
+          }
+        } catch (error) {
+          console.log({ error });
+          onError(error);
+        }
+      }
     }
   }
   async onDrop(files) {
@@ -195,36 +237,61 @@ class Uploader extends Component {
     const { completed, buffer, showProgress } = this.state;
     return (
       <Fragment>
-        <Grid container spacing={4} className="mt-4">
-          <Grid item xs={12} sm={12}>
-            <div className="dropzone">
-              <Dropzone
-                onDrop={this.onDrop.bind(this)}
-                onFileDialogCancel={this.onCancel.bind(this)}>
-                {({ getRootProps, getInputProps }) => (
-                  <div {...getRootProps()}>
-                    <input {...getInputProps()} />
-                    <div className="dz-message">
-                      <div className="dx-text">
-                        Try dropping some files here, or click to select files
-                        to upload. <FontAwesomeIcon icon="file-upload" />
+        {/* <Card className="card-box mb-4"> */}
+
+        <div className="card-body px-0 pt-2 pb-3">
+          <Grid container spacing={4} className="mt-4">
+            <Grid item xs={12} sm={12} style={{ marginLeft: '30%' }}>
+              <div>
+                <Box className="d-flex align-items-center">
+                  {/* <Button
+                // href="https://themes.material-ui.com/themes/carolina-react-admin-dashboard-free"
+                rel="noopener"
+                target="_blank"
+                size="small"
+                variant="contained"
+                color="default"
+                className="mr-3">
+                Fetch
+                </Button> */}
+                  <FetchComponent handleFetch={cid => this.handleFetch(cid)} />
+                </Box>
+              </div>
+            </Grid>
+            <div className="divider mb-3" />
+
+            <Grid item xs={12} sm={12}>
+              <div className="dropzone">
+                <Dropzone
+                  onDrop={this.onDrop.bind(this)}
+                  onFileDialogCancel={this.onCancel.bind(this)}>
+                  {({ getRootProps, getInputProps }) => (
+                    <div {...getRootProps()}>
+                      <input {...getInputProps()} />
+                      <div className="dz-message">
+                        <div className="dx-text">
+                          Try dropping some files here, or click to select files
+                          to upload. <FontAwesomeIcon icon="file-upload" />
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
+                </Dropzone>
+                {showProgress && (
+                  <LinearProgress
+                    variant="buffer"
+                    value={completed}
+                    valueBuffer={buffer}
+                    className="mb-4"
+                    color="secondary"
+                  />
                 )}
-              </Dropzone>
-              {showProgress && (
-                <LinearProgress
-                  variant="buffer"
-                  value={completed}
-                  valueBuffer={buffer}
-                  className="mb-4"
-                  color="secondary"
-                />
-              )}
-            </div>
+              </div>
+            </Grid>
           </Grid>
-        </Grid>
+          <div className="divider mb-3" />
+        </div>
+        {/* </Card> */}
       </Fragment>
     );
   }
@@ -355,7 +422,10 @@ function mapDispatchToProps(dispatch) {
 const mapStateToProps = state => {
   console.log(state.data, 'state');
 
-  return { node: state.data.node };
+  return { 
+    node: state.data.node ,
+    FILES: state.data.FILES 
+  };
 };
 const FileUploader = connect(mapStateToProps, mapDispatchToProps)(Uploader);
 

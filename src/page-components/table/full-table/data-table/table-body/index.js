@@ -16,9 +16,9 @@ const ConnectedList = ({ tableData }) => (
   <tbody>
     {tableData.map((el, index) => (
       <tr key={index}>
-        <td>
-          <span className="text-black-50 d-block">{el.name}</span>
-        </td>
+        <td className=" text-break">
+          <span className="text-black-50 d-block ">{el.name}</span>
+        </td >
         <td className="text-center">
           <span className="font-weight-bold text-primary">{el.cid}</span>
         </td>
