@@ -85,6 +85,7 @@ class Downloader extends Component {
         await removePin(cid, this.props.node);
       }
       this.updateProgress(10, 10);
+      this.resetProgress();
     } catch (err) {
       err.message = `Failed to remove : ${err.message}`;
       onError(err);

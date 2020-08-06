@@ -108,17 +108,18 @@ class Uploader extends Component {
         console.log({ file });
         // try decrypt it
         try {
-          const filename = await decryptData(hexStringToUint8Array(file.name));
-          console.log({ filename });
+         
 
           if (file.size != 0) {
+            const filename = await decryptData(hexStringToUint8Array(file.name));
+            console.log({ filename });
             if (!this.props.FILES.includes(cid)) {
               const db = await createUserFileDB();
               const dbData = {
                 name: filename,
                 cid,
                 size: file.size,
-                key: this.state.key
+                key: null
               };
               await addToDb('privateFiles', dbData, db);
               console.log(
@@ -129,7 +130,7 @@ class Uploader extends Component {
                 cid: cid,
                 name: filename,
                 size: file.size,
-                key: this.state.key
+                key: null
               });
             } else {
               onError('file is already in the current wrokspace');

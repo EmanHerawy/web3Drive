@@ -106,6 +106,7 @@ export function getPrData() {
         privateFiles.push({
           name: data.name,
           cid: data.cid,
+          key: data.key,
           size: data.size
         });
       },

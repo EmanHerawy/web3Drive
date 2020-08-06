@@ -68,7 +68,7 @@ function Table(props) {
         <div className="card-header">
           <div className="card-header--title">
             <h4 className="font-size-lg mb-0 py-2 font-weight-bold">
-              Private Vault
+              Private File List
             </h4>
           </div>
           <Box className="card-header--actions">
