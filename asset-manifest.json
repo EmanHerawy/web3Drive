@@ -1,0 +1,31 @@
+{
+  "files": {
+    "main.css": "/Web3Drive/static/css/main.b815945f.chunk.css",
+    "main.js": "/Web3Drive/static/js/main.9647855b.chunk.js",
+    "main.js.map": "/Web3Drive/static/js/main.9647855b.chunk.js.map",
+    "runtime-main.js": "/Web3Drive/static/js/runtime-main.6fed9cf0.js",
+    "runtime-main.js.map": "/Web3Drive/static/js/runtime-main.6fed9cf0.js.map",
+    "static/js/2.77cf88a2.chunk.js": "/Web3Drive/static/js/2.77cf88a2.chunk.js",
+    "static/js/2.77cf88a2.chunk.js.map": "/Web3Drive/static/js/2.77cf88a2.chunk.js.map",
+    "static/js/3.551495b5.chunk.js": "/Web3Drive/static/js/3.551495b5.chunk.js",
+    "static/js/3.551495b5.chunk.js.map": "/Web3Drive/static/js/3.551495b5.chunk.js.map",
+    "static/js/4.56376a8e.chunk.js": "/Web3Drive/static/js/4.56376a8e.chunk.js",
+    "static/js/4.56376a8e.chunk.js.map": "/Web3Drive/static/js/4.56376a8e.chunk.js.map",
+    "index.html": "/Web3Drive/index.html",
+    "precache-manifest.e996738b9532ef457451155ac96de40a.js": "/Web3Drive/precache-manifest.e996738b9532ef457451155ac96de40a.js",
+    "service-worker.js": "/Web3Drive/service-worker.js",
+    "static/css/main.b815945f.chunk.css.map": "/Web3Drive/static/css/main.b815945f.chunk.css.map",
+    "static/js/2.77cf88a2.chunk.js.LICENSE.txt": "/Web3Drive/static/js/2.77cf88a2.chunk.js.LICENSE.txt",
+    "static/js/3.551495b5.chunk.js.LICENSE.txt": "/Web3Drive/static/js/3.551495b5.chunk.js.LICENSE.txt",
+    "static/media/base.scss": "/Web3Drive/static/media/bg5.d6730522.jpg",
+    "static/media/cloud-icn.png": "/Web3Drive/static/media/cloud-icn.8ad648fc.png",
+    "static/media/preview.jpg": "/Web3Drive/static/media/preview.2f338244.jpg",
+    "static/media/react.svg": "/Web3Drive/static/media/react.95eef8bb.svg"
+  },
+  "entrypoints": [
+    "static/js/runtime-main.6fed9cf0.js",
+    "static/js/2.77cf88a2.chunk.js",
+    "static/css/main.b815945f.chunk.css",
+    "static/js/main.9647855b.chunk.js"
+  ]
+}
