@@ -29,7 +29,7 @@ import {
 import worker_script from '../../dworker';
 
 import { connect } from 'react-redux';
-import { removeRow, updateRow } from '../../reducers/data';
+import { removeRow, updateRow, addTo3Box } from '../../reducers/data';
 
 let downloader$;
 
@@ -64,7 +64,9 @@ class Downloader extends Component {
   async removeFile(cid) {
     console.log(cid, 'remove');
     try {
-      this.setState({ showProgress: true });
+      this.setState({
+        showProgress: true
+      });
       this.updateProgress(1, 10);
       const db = await createUserFileDB();
       console.log(cid, 'hash');
@@ -88,12 +90,68 @@ class Downloader extends Component {
       onError(err);
     }
   }
+  async syncFile(cid) {
+    console.log(this.state.row[0], 'this.state.row[0]');
+    try {
+      let tempFiles = this.props.boxFiles;
+
+      console.log(this.state.boxFiles, 'this.state.boxFiles');
+      console.log(this.props.boxFiles, 'this.props.boxFiles');
+
+      //tempFiles=this.state.boxFiles;
+
+      this.updateProgress(1, 10);
+      console.log(tempFiles, 'tempFiles');
+
+      tempFiles = {
+        ...tempFiles,
+        [`${cid}`]: {
+          name: this.state.row[0].name,
+          key: this.state.row[0].key,
+          size: this.state.row[0].size
+        }
+      };
+      console.log(tempFiles, 'tempFiles');
+
+      this.setState({
+        boxFiles: tempFiles
+      });
+      this.setState({
+        showProgress: true
+      });
+      console.log(this.state, 'this.state.space');
+
+      const result = await this.props.space.private.set(
+        'files',
+        JSON.stringify(tempFiles)
+      );
+      console.log(result, 'result');
+
+      this.updateProgress(5, 10);
+      console.log(this.state, 'state');
+
+      // remove from file array
+
+      this.props.addTo3Box(tempFiles);
+
+      this.updateProgress(10, 10);
+      this.resetProgress();
+    } catch (err) {
+      err.message = `Failed tkco Sync : ${err.message}`;
+      onError(err);
+      console.log({
+        err
+      });
+    }
+  }
   async download(hash) {
     downloader$ = new Subject();
     let fileName = '';
     let startTime = new Date().getTime();
     // console.log({ hash });
-    this.setState({ showProgress: true });
+    this.setState({
+      showProgress: true
+    });
     console.log(
       `************ getting file from IPFS startTime is ${startTime} ***************`
     );
@@ -150,7 +208,9 @@ class Downloader extends Component {
           onSuccess(`The ${fileName} file was added.`);
         },
         err => {
-          console.log({ err });
+          console.log({
+            err
+          });
           onError(err);
         }
       );
@@ -266,10 +326,14 @@ class Downloader extends Component {
 
         combineLatest(observables).subscribe(
           num => {
-            console.log({ num });
+            console.log({
+              num
+            });
           },
           err => {
-            console.log({ err });
+            console.log({
+              err
+            });
             onError(err);
           },
           x => {
@@ -319,20 +383,27 @@ class Downloader extends Component {
     if (value) {
       let updatedRow = this.state.row[0];
       updatedRow.key = value;
-      this.setState({ row: updatedRow, key: value });
-      this.props.updateRow({ row: updatedRow });
+      this.setState({
+        row: updatedRow,
+        key: value
+      });
+      this.props.updateRow({
+        row: updatedRow
+      });
       const db = await createUserFileDB();
       updateSingleValue('privateFiles', updatedRow.cid, value, db);
       Swal.fire(`Key has been updated `);
     }
   }
   render() {
-    const { cid } = this.props;
     const { completed, buffer, showProgress, key } = this.state;
+    const { cid, identity,boxFiles } = this.props;
     console.log(key, 'key');
+    console.log(boxFiles, 'key boxFiles');
 
     return (
       <Fragment>
+        {' '}
         {showProgress && (
           <LinearProgress
             variant="buffer"
@@ -341,7 +412,7 @@ class Downloader extends Component {
             className="mb-4"
             color="secondary"
           />
-        )}
+        )}{' '}
         <Box className="card-header--actions">
           <IconButton
             size="small"
@@ -350,7 +421,7 @@ class Downloader extends Component {
             onClick={() => this.updateKey()}
             title={!key ? 'Add Encryption Key' : 'Update Encryption Key'}>
             <FontAwesomeIcon icon={['fas', 'key']} className="font-size-lg" />
-          </IconButton>
+          </IconButton>{' '}
           <IconButton
             onClick={() => this.download(cid)}
             disabled={!key}
@@ -363,7 +434,19 @@ class Downloader extends Component {
               className="font-size-lg"
             />
           </IconButton>
-
+          <IconButton
+            size="small"
+            // color="danger"
+            disabled={!identity}
+            onClick={() => this.syncFile(cid)}
+            className={
+              !(boxFiles && boxFiles.hasOwnProperty(cid))
+                ? 'text-danger'
+                : 'text-success '
+            }
+            title="Sync with 3 Box">
+            <FontAwesomeIcon icon={['fas', 'sync']} className="font-size-lg" />
+          </IconButton>{' '}
           <IconButton
             size="small"
             // color="danger"
@@ -374,8 +457,8 @@ class Downloader extends Component {
               icon={['fas', 'eraser']}
               className="font-size-lg"
             />
-          </IconButton>
-        </Box>
+          </IconButton>{' '}
+        </Box>{' '}
       </Fragment>
     );
   }
@@ -384,16 +467,21 @@ class Downloader extends Component {
 function mapDispatchToProps(dispatch) {
   return {
     removeRow: cid => dispatch(removeRow(cid)),
-    updateRow: row => dispatch(updateRow(row))
+    updateRow: row => dispatch(updateRow(row)),
+    removeFrom3Box: row => dispatch(addTo3Box(row)),
+    addTo3Box: row => dispatch(addTo3Box(row))
     // ,
     // getRow: cid => dispatch(getRow(cid))
   };
 }
 const mapStateToProps = state => {
-  console.log(state.data, 'state');
+  console.log(state.data, 'state in download');
 
   return {
     node: state.data.node,
+    identity: state.data.identity,
+    boxFiles: state.data.boxFiles,
+    space: state.data.space,
     tableData: state.data.tableData
   };
 };
@@ -424,15 +512,28 @@ const decryptWorker = (index, arr, key) => {
           observer.complete();
         }
       } catch (error) {
-        console.log({ error });
+        console.log({
+          error
+        });
 
         onError('Hard disk full, please clear some space and try again.');
         console.log('Hard disk full, please clear some space and try again.');
       }
     };
-    console.log({ file: arr, index: index, key: key });
+    console.log({
+      file: arr,
+      index: index,
+      key: key
+    });
 
-    worker.postMessage({ file: arr, index: index, key: key }, [arr.buffer]);
+    worker.postMessage(
+      {
+        file: arr,
+        index: index,
+        key: key
+      },
+      [arr.buffer]
+    );
   });
   return decryptor$; //.subscribe(s=>{console.log(s,'ssssssss'); return s}        )
 };

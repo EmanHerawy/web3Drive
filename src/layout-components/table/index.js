@@ -14,9 +14,10 @@ import {
   exportFile,
   asyncLocalStorage,
   createUserFileDB,
+  clearUserData,
   addToDb
 } from '../../utils/helper';
-import { addNewRow } from '../../reducers/data';
+import { addNewRow, rest } from '../../reducers/data';
 import { connect } from 'react-redux';
 
 function Table(props) {
@@ -50,6 +51,16 @@ function Table(props) {
     // this.setState({
     //   files: []
     // });
+  };
+  const emptyList = async () => {
+    // this.setState({
+    //   files: []
+    // });
+    if (props.space) {
+      await props.space.private.remove('files');
+    }
+    await clearUserData('privateFiles');
+    props.rest();
   };
   return (
     <Fragment>
@@ -102,6 +113,17 @@ function Table(props) {
                 className="font-size-lg"
               />
             </IconButton>
+            <IconButton
+              size="small"
+              // color="danger"
+              onClick={() => emptyList()}
+              className="text-danger"
+              title="Empty List">
+              <FontAwesomeIcon
+                icon={['fas', 'recycle']}
+                className="font-size-lg"
+              />
+            </IconButton>
           </Box>
         </div>
         <LoadTableData />
@@ -138,11 +160,12 @@ function Table(props) {
 const mapStateToProps = state => {
   console.log(state.data);
 
-  return { tableData: state.data.tableData };
+  return { tableData: state.data.tableData, space: state.data.space };
 };
 function mapDispatchToProps(dispatch) {
   return {
-    addNewRow: row => dispatch(addNewRow(row))
+    addNewRow: row => dispatch(addNewRow(row)),
+    rest: row => dispatch(rest())
   };
 }
 

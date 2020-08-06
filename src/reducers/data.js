@@ -1,13 +1,27 @@
 // Sidebar
-
 export const ADD_NEW_ROW = 'ADD_NEW_ROW';
 export const UPDATE_ROW = 'UPDATE_ROW';
 export const INIT_IPFS = 'INIT_IPFS';
+export const INIT_IDENTITY = 'INIT_IDENTITY';
 export const REMOVE_ROW = 'REMOVE_ROW';
+export const REST = 'REST';
 export const GET_ROW = 'GET_ROW';
+export const ADD_TO_3BOX = 'ADD_TO_3BOX';
 
 export const addNewRow = row => ({
   type: ADD_NEW_ROW,
+  row
+});
+export const initIdentity = identity => ({
+  type: INIT_IDENTITY,
+  identity
+});
+export const rest = () => ({
+  type: REST
+
+});
+export const addTo3Box = row => ({
+  type: ADD_TO_3BOX,
   row
 });
 export const initIPFS = node => ({
@@ -37,6 +51,9 @@ export default function reducer(
   state = {
     // table
     tableData: [],
+    boxFiles: [],
+    identity: null,
+    space: null,
     FILES: [],
     node: {}
   },
@@ -45,6 +62,16 @@ export default function reducer(
   switch (action.type) {
     // Sidebar
 
+    case ADD_TO_3BOX:
+      return Object.assign({}, state, {
+        boxFiles: action.row
+      });
+    case REST:
+      return Object.assign({}, state, {
+        boxFiles: {},
+        tableData: [],
+        FILES: []
+      });
     case ADD_NEW_ROW:
       return Object.assign({}, state, {
         tableData: state.tableData.concat(action.row),
@@ -57,21 +84,29 @@ export default function reducer(
         ...state,
         node: action.node
       };
+    case INIT_IDENTITY:
+      console.log(action, 'action.payload');
+
+      return {
+        ...state,
+        identity: action.identity.identity,
+          boxFiles: action.identity.boxFiles,
+          space: action.identity.space ? action.identity.space : {}
+      };
     case REMOVE_ROW:
       return {
         ...state,
         tableData: state.tableData.filter(item => item.cid !== action.cid),
-        FILES: state.FILES.filter(item => item !== action.cid)
+          FILES: state.FILES.filter(item => item !== action.cid)
       };
     case UPDATE_ROW:
-      console.log(action,state, 'action.row');
+      // console.log(action, state, 'action.row');
 
       return {
         ...state,
         tableData: state.tableData.map(row =>
           row.cid === action.row.cid ? action.row : row
         )
-         
       };
     case GET_ROW:
       console.log(action, 'action');

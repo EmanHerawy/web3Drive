@@ -15,12 +15,17 @@ export async function get3BoxIdentity() {
   await box.syncDone;
   try {
     // We'll try to restore the private key if it's available
-    var storedIdent = await space.private.get('identity');
+    const storedIdent = await space.private.get('identity');
+    let boxFiles = JSON.parse(await space.private.get('files'));
+    if (!boxFiles) {
+      await space.private.set('files', JSON.stringify({}));
+      boxFiles = JSON.parse(await space.private.get('files'));
+    }
     if (storedIdent === null) {
       throw new Error('No identity');
     }
     const identity = await Libp2pCryptoIdentity.fromString(storedIdent);
-    return identity;
+    return { identity, space, boxFiles };
   } catch (e) {
     /**
      * If the stored identity wasn't found, create a new one.
@@ -28,6 +33,8 @@ export async function get3BoxIdentity() {
     const identity = await Libp2pCryptoIdentity.fromRandom();
     const identityString = identity.toString();
     await space.private.set('identity', identityString);
-    return identity;
+    await space.private.set('files', JSON.stringify({}));
+    const boxFiles =  JSON.parse(await space.private.get('files'));
+    return { identity, space,boxFiles };
   }
 }
