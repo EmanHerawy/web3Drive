@@ -1,6 +1,6 @@
 self.__precacheManifest = (self.__precacheManifest || []).concat([
   {
-    "revision": "9d27df762888890d58abdb7b3b65b71b",
+    "revision": "edb9b34a4ff25739d8b79d8b38063fea",
     "url": "/Web3Drive/index.html"
   },
   {
